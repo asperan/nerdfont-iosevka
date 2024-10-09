@@ -107,12 +107,14 @@ jobs:
               -o "${BASE_INPUT_DIR}/${ASSET_NAME}.zip" \
               "${ASSET_URL}"
             unzip -o "${BASE_INPUT_DIR}/${ASSET_NAME}.zip" -d "${BASE_INPUT_DIR}/${ASSET_NAME}"
+            break # TODO: remove this line
           done
       - name: Patch fonts
         if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
         run: |
           BASE_OUTPUT_DIR="${WORK_DIR}/output"
-          for dir in $(find "${BASE_INPUT_DIR}" -mindepth 1 -type d); do
+          patch_dir() {
+            local dir="$1"
             base_font_name="$(basename "${dir}")"
             echo "Patching ${base_font_name} into ${BASE_OUTPUT_DIR}/${base_font_name}"
             mkdir -p "${BASE_OUTPUT_DIR}/${base_font_name}"
@@ -120,7 +122,9 @@ jobs:
               echo "Patching ${file}"
               "${WORK_DIR}/${FONTFORGE_NAME}" -script "${FONT_PATCHER_DIR}/font-patcher" "${file}" --quiet --no-progressbars --complete -out "${BASE_OUTPUT_DIR}/${base_font_name}"
             done
-          done
+          }
+          export -f patch_dir
+          find "${BASE_INPUT_DIR}" -mindepth 1 -type d | parallel patch_dir {}
       - name: Copy patched fonts in repository
         if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
         run: rsync -r --inplace --mkpath --whole-file "${BASE_OUTPUT_DIR}/" "${{ github.workspace }}"
