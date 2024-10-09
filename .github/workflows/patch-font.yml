@@ -118,10 +118,7 @@ jobs:
             base_font_name="$(basename "${dir}")"
             echo "Patching ${base_font_name} into ${BASE_OUTPUT_DIR}/${base_font_name}"
             mkdir -p "${BASE_OUTPUT_DIR}/${base_font_name}"
-            for file in $(find "${dir}" -type f); do
-              echo "Patching ${file}"
-              "${WORK_DIR}/${FONTFORGE_NAME}" -script "${FONT_PATCHER_DIR}/font-patcher" "${file}" --quiet --no-progressbars --complete -out "${BASE_OUTPUT_DIR}/${base_font_name}"
-            done
+            find "${dir}" -type f | parallel echo "Patching {}" \; "${WORK_DIR}/${FONTFORGE_NAME}" -script "${FONT_PATCHER_DIR}/font-patcher" "{}" --quiet --no-progressbars --complete -out "${BASE_OUTPUT_DIR}/${base_font_name}"
           }
           export -f patch_dir
           find "${BASE_INPUT_DIR}" -mindepth 1 -type d | parallel patch_dir {}
