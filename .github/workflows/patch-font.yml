@@ -79,8 +79,7 @@ jobs:
       needs_patch: ${{ needs.setup.outputs.needs_patch }}
     needs: setup
     strategy:
-      matrix:
-        fonts: ${{ fromJSON(needs.setup.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
     steps:
       - name: Debug
         run: |
