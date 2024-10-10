@@ -79,12 +79,13 @@ jobs:
       needs_patch: ${{ needs.setup.outputs.needs_patch }}
     needs: setup
     strategy:
-      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+      matrix:
+        font: ${{ fromJSON(needs.setup.outputs.matrix) }}
     steps:
       - name: Debug
         run: |
-          echo "Name: ${{ matrix.name }}"
-          echo "Url: ${{ matrix.url }}"
+          echo "Name: ${{ matrix.font }}"
+          echo "Url: ${{ matrix.font }}"
       # - name: Download latest FontForge AppImage
       #   if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
       #   run: |
