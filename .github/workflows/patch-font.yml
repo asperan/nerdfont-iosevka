@@ -28,6 +28,7 @@ jobs:
         run: |
           WORK_DIR="/tmp/iosevka-patch"
           IOSEVKA_RELEASE_METADATA_PATH="${WORK_DIR}/iosevka-latest-release.json"
+          echo "WORK_DIR=${WORK_DIR}" >> "$GITHUB_ENV"
           echo "IOSEVKA_RELEASE_METADATA_PATH=${IOSEVKA_RELEASE_METADATA_PATH}" >> "$GITHUB_ENV"
       - name: Create base work dir
         run: mkdir -p ${WORK_DIR}
