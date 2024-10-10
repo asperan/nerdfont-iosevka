@@ -63,6 +63,7 @@ jobs:
     if: ${{ needs.setup.outputs.needs_patch }}
     outputs:
       needs_patch: ${{ needs.setup.outputs.needs_patch }}
+      release_tag: ${{ needs.setup.outputs.release_tag }}
     needs: setup
     strategy:
       matrix:
@@ -160,16 +161,13 @@ jobs:
           find ./ -mindepth 1 -maxdepth 1 -type d -not -name '.*' -exec rm -r {} \;
       - name: Load artifacts
         uses: actions/download-artifact@v4
-      - name: Debug artifact download
+      - name: Git config
         run: |
-          ls -R -l
-      # - name: Git config
-      #   run: |
-      #     git config --global user.name "CI"
-      #     git config --global user.email "${{ github.triggering_actor }}@users.noreply.github.com"
-      # - name: Commit, Tag and Push
-      #   run: |
-      #     git add --all
-      #     git commit -m "chore: update patched fonts"
-      #     git tag "${RELEASE_TAG}" -m "Patched Iosevka ${RELEASE_TAG}"
-      #     git push --follow-tags
+          git config --global user.name "CI"
+          git config --global user.email "${{ github.triggering_actor }}@users.noreply.github.com"
+      - name: Commit, Tag and Push
+        run: |
+          git add --all
+          git commit -m "chore: update patched fonts"
+          git tag "${{ needs.patch.outputs.release_tag }}" -m "Patched Iosevka ${{ needs.patch.outputs.release_tag }}"
+          git push --follow-tags
