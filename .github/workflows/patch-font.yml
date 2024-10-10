@@ -71,7 +71,7 @@ jobs:
         id: matrix-build
         if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
         run: |
-          echo "matrix='$(jq -c '{ "fonts": [ .assets[] | select(.name | test("PkgTTF-Iosevka.*\\.zip")) | {"name": .name, "url": .url } ] }' "${IOSEVKA_RELEASE_METADATA_PATH}")'" >> "${GITHUB_OUTPUT}"
+          echo "matrix='$(jq -c '[ .assets[] | select(.name | test("PkgTTF-Iosevka.*\\.zip")) | .name + "," + .url ]' "${IOSEVKA_RELEASE_METADATA_PATH}")'" >> "${GITHUB_OUTPUT}"
   patch:
     runs-on: ubuntu-latest
     if: ${{ needs.setup.outputs.needs_patch }}
@@ -79,12 +79,12 @@ jobs:
       needs_patch: ${{ needs.setup.outputs.needs_patch }}
     needs: setup
     strategy:
-      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+      matrix:
+        font: ${{ fromJSON(needs.setup.outputs.matrix) }}
     steps:
       - name: Debug
         run: |
-          echo "Name: ${{ matrix.font }}"
-          echo "Url: ${{ matrix.font }}"
+          echo "Value: ${{ matrix.font }}"
       # - name: Download latest FontForge AppImage
       #   if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
       #   run: |
