@@ -86,15 +86,17 @@ jobs:
         run: |
           echo "Value: ${{ matrix.font }}"
       - name: Create temp file in directory
+        id: temp
         run: |
           ASSET_NAME=$(echo "${{ matrix.font }}" | cut -d ',' -f 1)
+          echo "asset_name=${ASSET_NAME}" >> "${GITHUB_OUTPUT}"
           mkdir -p /tmp/${ASSET_NAME}
           touch /tmp/${ASSET_NAME}/test_file.txt
       - name: Share output
         uses: actions/upload-artifact@v4
         with:
-          name: ${ASSET_NAME}
-          path: /tmp/${ASSET_NAME}
+          name: ${{ steps.temp.outputs.asset_name }}
+          path: /tmp/${{ steps.temp.outputs.asset_name }}
       # - name: Download latest FontForge AppImage
       #   if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
       #   run: |
