@@ -60,7 +60,7 @@ jobs:
         id: matrix-build
         if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
         run: |
-          echo "matrix=$(jq -c '[ .assets[] | select(.name | test("PkgTTF-Iosevka.*\\.zip")) | .name + "," + .url ]' "${IOSEVKA_RELEASE_METADATA_PATH}")" >> "${GITHUB_OUTPUT}"
+          echo "matrix=$(jq -c '[ .assets[] | select(.name | test("PkgTTF-Iosevka.*\\.zip")) | .name + "," + .url ][:2]' "${IOSEVKA_RELEASE_METADATA_PATH}")" >> "${GITHUB_OUTPUT}"
   patch:
     runs-on: ubuntu-latest
     if: ${{ needs.setup.outputs.needs_patch }}
