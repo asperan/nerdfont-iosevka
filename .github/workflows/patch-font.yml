@@ -64,75 +64,80 @@ jobs:
             exit 0
           fi
           echo "needs_patch=true" >> "${GITHUB_OUTPUT}"
-      - name: Download latest FontForge AppImage
+      - name: Build matrix
+        id: matrix-build
         if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
         run: |
-          FONTFORGE_URL="$(curl -fsSL \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/fontforge/fontforge/releases/latest | jq -r '.assets[] | select(.name | test("FontForge.*\\.AppImage")) | .url')"
-          curl -fsSL \
-            -H "Accept: application/octet-stream" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            -o "${WORK_DIR}/${FONTFORGE_NAME}" \
-            "${FONTFORGE_URL}"
-          chmod u+x "${WORK_DIR}/${FONTFORGE_NAME}"
-      - name: Download latest Nerd Font patcher
-        if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
-        run: |
-          FONT_PATCHER_URL="$(curl -fsSL \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | jq -r '.assets[] | select(.name == "FontPatcher.zip") | .url')"
-          curl -fsSL \
-              -H "Accept: application/octet-stream" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              -o "${WORK_DIR}/${FONT_PATCHER_NAME}" \
-              "${FONT_PATCHER_URL}"
-          unzip -o "${WORK_DIR}/${FONT_PATCHER_NAME}" -d "${FONT_PATCHER_DIR}"
-      - name: Download font files
-        if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
-        run: |
-          mkdir -p "${BASE_INPUT_DIR}"
-          for asset in $(jq -c '.assets[] | select(.name | test("PkgTTF-Iosevka.*\\.zip")) | {"name": .name, "url": .url }' "${IOSEVKA_RELEASE_METADATA_PATH}"); do
-            ASSET_NAME="$(jq -r '.name' <<< "${asset}")"
-            ASSET_NAME="${ASSET_NAME#PkgTTF-}"
-            ASSET_NAME="${ASSET_NAME%-"${IOSEVKA_VERSION}".zip}"
-            ASSET_URL="$(jq -r '.url' <<< "${asset}")"
-            echo "ASSET_NAME=${ASSET_NAME}"
-            echo "ASSET_URL=${ASSET_URL}"
-            curl -fsSL \
-              -H "Accept: application/octet-stream" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              -o "${BASE_INPUT_DIR}/${ASSET_NAME}.zip" \
-              "${ASSET_URL}"
-            unzip -o "${BASE_INPUT_DIR}/${ASSET_NAME}.zip" -d "${BASE_INPUT_DIR}/${ASSET_NAME}"
-          done
-      - name: Patch fonts
-        if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
-        run: |
-          BASE_OUTPUT_DIR="${WORK_DIR}/output"
-          patch_dir() {
-            local dir="$1"
-            base_font_name="$(basename "${dir}")"
-            echo "Patching ${base_font_name} into ${BASE_OUTPUT_DIR}/${base_font_name}"
-            mkdir -p "${BASE_OUTPUT_DIR}/${base_font_name}"
-            find "${dir}" -type f | parallel echo "Patching {}" \; "${WORK_DIR}/${FONTFORGE_NAME}" -script "${FONT_PATCHER_DIR}/font-patcher" "{}" --quiet --no-progressbars --complete -out "${BASE_OUTPUT_DIR}/${base_font_name}"
-          }
-          export -f patch_dir
-          find "${BASE_INPUT_DIR}" -mindepth 1 -type d | parallel patch_dir {}
-      - name: Copy patched fonts in repository
-        if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
-        run: rsync -r --inplace --mkpath --whole-file "${BASE_OUTPUT_DIR}/" "${{ github.workspace }}"
-      - name: Git config
-        if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
-        run: |
-          git config --global user.name "CI"
-          git config --global user.email "${{ github.triggering_actor }}@users.noreply.github.com"
-      - name: Commit, Tag and Push
-        if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
-        run: |
-          git add --all
-          git commit -m "chore: update patched fonts"
-          git tag "${RELEASE_TAG}" -m "Patched Iosevka ${RELEASE_TAG}"
-          git push --follow-tags
+          jq -c '[ .assets[] | select(.name | test("PkgTTF-Iosevka.*\\.zip")) | {"name": .name, "url": .url } ]' "${IOSEVKA_RELEASE_METADATA_PATH}"
+      # - name: Download latest FontForge AppImage
+      #   if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
+      #   run: |
+      #     FONTFORGE_URL="$(curl -fsSL \
+      #       -H "Accept: application/vnd.github+json" \
+      #       -H "X-GitHub-Api-Version: 2022-11-28" \
+      #       https://api.github.com/repos/fontforge/fontforge/releases/latest | jq -r '.assets[] | select(.name | test("FontForge.*\\.AppImage")) | .url')"
+      #     curl -fsSL \
+      #       -H "Accept: application/octet-stream" \
+      #       -H "X-GitHub-Api-Version: 2022-11-28" \
+      #       -o "${WORK_DIR}/${FONTFORGE_NAME}" \
+      #       "${FONTFORGE_URL}"
+      #     chmod u+x "${WORK_DIR}/${FONTFORGE_NAME}"
+      # - name: Download latest Nerd Font patcher
+      #   if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
+      #   run: |
+      #     FONT_PATCHER_URL="$(curl -fsSL \
+      #       -H "Accept: application/vnd.github+json" \
+      #       -H "X-GitHub-Api-Version: 2022-11-28" \
+      #       https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | jq -r '.assets[] | select(.name == "FontPatcher.zip") | .url')"
+      #     curl -fsSL \
+      #         -H "Accept: application/octet-stream" \
+      #         -H "X-GitHub-Api-Version: 2022-11-28" \
+      #         -o "${WORK_DIR}/${FONT_PATCHER_NAME}" \
+      #         "${FONT_PATCHER_URL}"
+      #     unzip -o "${WORK_DIR}/${FONT_PATCHER_NAME}" -d "${FONT_PATCHER_DIR}"
+      # - name: Download font files
+      #   if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
+      #   run: |
+      #     mkdir -p "${BASE_INPUT_DIR}"
+      #     for asset in $(jq -c '.assets[] | select(.name | test("PkgTTF-Iosevka.*\\.zip")) | {"name": .name, "url": .url }' "${IOSEVKA_RELEASE_METADATA_PATH}"); do
+      #       ASSET_NAME="$(jq -r '.name' <<< "${asset}")"
+      #       ASSET_NAME="${ASSET_NAME#PkgTTF-}"
+      #       ASSET_NAME="${ASSET_NAME%-"${IOSEVKA_VERSION}".zip}"
+      #       ASSET_URL="$(jq -r '.url' <<< "${asset}")"
+      #       echo "ASSET_NAME=${ASSET_NAME}"
+      #       echo "ASSET_URL=${ASSET_URL}"
+      #       curl -fsSL \
+      #         -H "Accept: application/octet-stream" \
+      #         -H "X-GitHub-Api-Version: 2022-11-28" \
+      #         -o "${BASE_INPUT_DIR}/${ASSET_NAME}.zip" \
+      #         "${ASSET_URL}"
+      #       unzip -o "${BASE_INPUT_DIR}/${ASSET_NAME}.zip" -d "${BASE_INPUT_DIR}/${ASSET_NAME}"
+      #     done
+      # - name: Patch fonts
+      #   if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
+      #   run: |
+      #     BASE_OUTPUT_DIR="${WORK_DIR}/output"
+      #     patch_dir() {
+      #       local dir="$1"
+      #       base_font_name="$(basename "${dir}")"
+      #       echo "Patching ${base_font_name} into ${BASE_OUTPUT_DIR}/${base_font_name}"
+      #       mkdir -p "${BASE_OUTPUT_DIR}/${base_font_name}"
+      #       find "${dir}" -type f | parallel echo "Patching {}" \; "${WORK_DIR}/${FONTFORGE_NAME}" -script "${FONT_PATCHER_DIR}/font-patcher" "{}" --quiet --no-progressbars --complete -out "${BASE_OUTPUT_DIR}/${base_font_name}"
+      #     }
+      #     export -f patch_dir
+      #     find "${BASE_INPUT_DIR}" -mindepth 1 -type d | parallel patch_dir {}
+      # - name: Copy patched fonts in repository
+      #   if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
+      #   run: rsync -r --inplace --mkpath --whole-file "${BASE_OUTPUT_DIR}/" "${{ github.workspace }}"
+      # - name: Git config
+      #   if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
+      #   run: |
+      #     git config --global user.name "CI"
+      #     git config --global user.email "${{ github.triggering_actor }}@users.noreply.github.com"
+      # - name: Commit, Tag and Push
+      #   if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
+      #   run: |
+      #     git add --all
+      #     git commit -m "chore: update patched fonts"
+      #     git tag "${RELEASE_TAG}" -m "Patched Iosevka ${RELEASE_TAG}"
+      #     git push --follow-tags
