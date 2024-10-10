@@ -117,6 +117,8 @@ jobs:
         id: download-font
         run: |
           mkdir -p "${BASE_INPUT_DIR}"
+          RELEASE_TAG="${{ needs.setup.outputs.release_tag  }}"
+          IOSEVKA_VERSION=${RELEASE_TAG#v}
           ASSET_NAME="$(echo "${{ matrix.font }}" | cut -d ',' -f 1)"
           ASSET_NAME="${ASSET_NAME#PkgTTF-}"
           ASSET_NAME="${ASSET_NAME%-"${IOSEVKA_VERSION}".zip}"
