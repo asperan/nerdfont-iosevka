@@ -8,8 +8,11 @@ permissions:
   contents: write
 
 jobs:
-  patch:
+  setup:
     runs-on: ubuntu-latest
+    outputs:
+      needs_patch: ${{ steps.version-check.outputs.needs_patch }}
+      matrix: ${{ steps.matrix-build.outputs.matrix }}
     steps:
       - name: Install libfuse2
         run: |
@@ -68,7 +71,20 @@ jobs:
         id: matrix-build
         if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
         run: |
-          jq -c '[ .assets[] | select(.name | test("PkgTTF-Iosevka.*\\.zip")) | {"name": .name, "url": .url } ]' "${IOSEVKA_RELEASE_METADATA_PATH}"
+          echo "matrix='$(jq -c '[ .assets[] | select(.name | test("PkgTTF-Iosevka.*\\.zip")) | {"name": .name, "url": .url } ]' "${IOSEVKA_RELEASE_METADATA_PATH}")'" >> "${GITHUB_OUTPUT}"
+  patch:
+    runs-on: ubuntu-latest
+    if: ${{ needs.setup.outputs.needs_patch }}
+    outputs:
+      needs_patch: ${{ needs.setup.outputs.needs_patch }}
+    needs: setup
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+    steps:
+      - name: Debug
+        run: |
+          echo "Name: ${{ matrix.name }}"
+          echo "Url: ${{ matrix.url }}"
       # - name: Download latest FontForge AppImage
       #   if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
       #   run: |
