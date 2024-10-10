@@ -177,8 +177,6 @@ jobs:
     steps:
       - name: Load artifacts
         uses: actions/download-artifact@v4
-        with:
-          merge-multiple: true
       - name: Debug artifact download
         run: |
           ls -R -l
