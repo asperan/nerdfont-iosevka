@@ -82,9 +82,19 @@ jobs:
       matrix:
         font: ${{ fromJSON(needs.setup.outputs.matrix) }}
     steps:
-      - name: Debug
+      - name: Debug matrix value
         run: |
           echo "Value: ${{ matrix.font }}"
+      - name: Create temp file in directory
+        run: |
+          ASSET_NAME=$(echo "${{ matrix.font }}" | cut -d ',' -f 1)
+          mkdir -p /tmp/${ASSET_NAME}
+          touch /tmp/${ASSET_NAME}/test_file.txt
+      - name: Share output
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${ASSET_NAME}
+          path: /tmp/${ASSET_NAME}
       # - name: Download latest FontForge AppImage
       #   if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
       #   run: |
@@ -157,3 +167,16 @@ jobs:
       #     git commit -m "chore: update patched fonts"
       #     git tag "${RELEASE_TAG}" -m "Patched Iosevka ${RELEASE_TAG}"
       #     git push --follow-tags
+
+  commit:
+    runs-on: ubuntu-latest
+    if: ${{ needs.patch.outputs.needs_patch }}
+    needs: patch
+    steps:
+      - name: Load artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - name: Debug artifact download
+        run: |
+          ls -R -l
