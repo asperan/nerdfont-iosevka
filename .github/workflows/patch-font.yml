@@ -146,6 +146,7 @@ jobs:
         with:
           name: ${{ steps.download-font.outputs.asset_name }}
           path: ${{ steps.patch-font.outputs.output_dir }}
+          retention-days: 1
 
   commit:
     runs-on: ubuntu-latest
