@@ -134,10 +134,10 @@ jobs:
       - name: Patch fonts
         id: patch-font
         run: |
-          local dir="${BASE_INPUT_DIR}/${ASSET_NAME}"
           echo "Patching ${ASSET_NAME} into ${BASE_OUTPUT_DIR}/${ASSET_NAME}"
           mkdir -p "${BASE_OUTPUT_DIR}/${ASSET_NAME}"
-          find "${dir}" -type f | parallel echo "Patching {}" \; "${WORK_DIR}/${FONTFORGE_NAME}" -script "${FONT_PATCHER_DIR}/font-patcher" "{}" --quiet --no-progressbars --complete -out "${BASE_OUTPUT_DIR}/${ASSET_NAME}"
+          find "${BASE_INPUT_DIR}/${ASSET_NAME}" -type f | \
+          parallel echo "Patching {}" \; "${WORK_DIR}/${FONTFORGE_NAME}" -script "${FONT_PATCHER_DIR}/font-patcher" "{}" --quiet --no-progressbars --complete -out "${BASE_OUTPUT_DIR}/${ASSET_NAME}"
           echo "output_dir=${BASE_OUTPUT_DIR}/${ASSET_NAME}" >> "${GITHUB_OUTPUT}"
       - name: Share output
         uses: actions/upload-artifact@v4
