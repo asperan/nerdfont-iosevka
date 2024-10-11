@@ -68,7 +68,7 @@ jobs:
         id: matrix-build
         if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
         run: |
-          echo "matrix=$(jq -c '[ .assets[] | select(.name | test("PkgTTF-Iosevka.*\\.zip")) | .name + "," + .url ][:1]' "${IOSEVKA_RELEASE_METADATA_PATH}")" >> "${GITHUB_OUTPUT}"
+          echo "matrix=$(jq -c '[ .assets[] | select(.name | test("PkgTTF-Iosevka.*\\.zip")) | .name + "," + .url ]' "${IOSEVKA_RELEASE_METADATA_PATH}")" >> "${GITHUB_OUTPUT}"
       - name: Download latest FontForge AppImage
         if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
         run: |
