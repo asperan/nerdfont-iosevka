@@ -192,9 +192,6 @@ jobs:
           find ./ -mindepth 1 -maxdepth 1 -type d -not -name '.*' -exec rm -r {} \;
       - name: Load artifacts
         uses: actions/download-artifact@v4
-      - name: Debug ls
-        run: |
-          ls -l
       - name: Git config
         run: |
           git config --global user.name "CI"
