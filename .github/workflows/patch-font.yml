@@ -14,6 +14,9 @@ jobs:
       needs_patch: ${{ steps.version-check.outputs.needs_patch }}
       matrix: ${{ steps.matrix-build.outputs.matrix }}
       release_tag: ${{ steps.version-check.outputs.release_tag }}
+      work_dir: ${{ steps.prepare.outputs.work_dir }}
+      font_forge_name: ${{ steps.prepare.outputs.font_forge_name }}
+      font_patcher_name: ${{ steps.prepare.outputs.font_patcher_name }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,11 +24,21 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
       - name: Prepare env
+        id: prepare
         run: |
           WORK_DIR="/tmp/iosevka-patch"
-          IOSEVKA_RELEASE_METADATA_PATH="${WORK_DIR}/iosevka-latest-release.json"
           echo "WORK_DIR=${WORK_DIR}" >> "$GITHUB_ENV"
+          echo "work_dir=${WORK_DIR}" >> "$GITHUB_OUTPUT"
+          IOSEVKA_RELEASE_METADATA_PATH="${WORK_DIR}/iosevka-latest-release.json"
           echo "IOSEVKA_RELEASE_METADATA_PATH=${IOSEVKA_RELEASE_METADATA_PATH}" >> "$GITHUB_ENV"
+          FONTFORGE_NAME="FontForge.AppImage"
+          echo "FONTFORGE_NAME=${FONTFORGE_NAME}" >> "$GITHUB_ENV"
+          echo "font_forge_name=${FONTFORGE_NAME}" >> "$GITHUB_OUTPUT"
+          FONT_PATCHER_NAME="FontPatcher.zip"
+          echo "FONT_PATCHER_NAME=${FONT_PATCHER_NAME}" >> "$GITHUB_ENV"
+          echo "font_patcher_name=${FONT_PATCHER_NAME}" >> "$GITHUB_OUTPUT"
+          FONT_PATCHER_DIR="${WORK_DIR}/font-patcher"
+          echo "FONT_PATCHER_DIR=${FONT_PATCHER_DIR}" >> "$GITHUB_ENV"
       - name: Create base work dir
         run: mkdir -p ${WORK_DIR}
       - name: Get Iosevka latest release metadata
@@ -57,40 +70,9 @@ jobs:
         id: matrix-build
         if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
         run: |
-          echo "matrix=$(jq -c '[ .assets[] | select(.name | test("PkgTTF-Iosevka.*\\.zip")) | .name + "," + .url ]' "${IOSEVKA_RELEASE_METADATA_PATH}")" >> "${GITHUB_OUTPUT}"
-  patch:
-    runs-on: ubuntu-latest
-    if: ${{ needs.setup.outputs.needs_patch }}
-    outputs:
-      needs_patch: ${{ needs.setup.outputs.needs_patch }}
-      release_tag: ${{ needs.setup.outputs.release_tag }}
-    needs: setup
-    strategy:
-      matrix:
-        font: ${{ fromJSON(needs.setup.outputs.matrix) }}
-    steps:
-      - name: Install libfuse2
-        run: |
-          sudo apt update
-          sudo apt install -y libfuse2
-      - name: Setup job
-        run: |
-          WORK_DIR="/tmp/iosevka-patch"
-          FONTFORGE_NAME="FontForge.AppImage"
-          FONT_PATCHER_NAME="FontPatcher.zip"
-          FONT_PATCHER_DIR="${WORK_DIR}/font-patcher"
-          BASE_INPUT_DIR="${WORK_DIR}/input"
-          BASE_OUTPUT_DIR="${WORK_DIR}/output"
-
-          echo "WORK_DIR=${WORK_DIR}" >> "$GITHUB_ENV"
-          echo "FONTFORGE_NAME=${FONTFORGE_NAME}" >> "$GITHUB_ENV"
-          echo "FONT_PATCHER_NAME=${FONT_PATCHER_NAME}" >> "$GITHUB_ENV"
-          echo "FONT_PATCHER_DIR=${FONT_PATCHER_DIR}" >> "$GITHUB_ENV"
-          echo "BASE_INPUT_DIR=${BASE_INPUT_DIR}" >> "$GITHUB_ENV"
-          echo "BASE_OUTPUT_DIR=${BASE_OUTPUT_DIR}" >> "$GITHUB_ENV"
-      - name: Create base work dir
-        run: mkdir -p ${WORK_DIR}
+          echo "matrix=$(jq -c '[ .assets[] | select(.name | test("PkgTTF-Iosevka.*\\.zip")) | .name + "," + .url ][:2]' "${IOSEVKA_RELEASE_METADATA_PATH}")" >> "${GITHUB_OUTPUT}"
       - name: Download latest FontForge AppImage
+        if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
         run: |
           FONTFORGE_URL="$(curl -fsSL \
             -H "Accept: application/vnd.github+json" \
@@ -102,18 +84,66 @@ jobs:
             -o "${WORK_DIR}/${FONTFORGE_NAME}" \
             "${FONTFORGE_URL}"
           chmod u+x "${WORK_DIR}/${FONTFORGE_NAME}"
+      - name: Upload FontForge AppImage
+        if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.prepare.outputs.font_forge_name }}
+          path: ${{ steps.prepare.outputs.work_dir }}/${{ steps.prepare.outputs.font_forge_name }}
       - name: Download latest Nerd Font patcher
+        if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
         run: |
           FONT_PATCHER_URL="$(curl -fsSL \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | jq -r '.assets[] | select(.name == "FontPatcher.zip") | .url')"
           curl -fsSL \
-              -H "Accept: application/octet-stream" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              -o "${WORK_DIR}/${FONT_PATCHER_NAME}" \
-              "${FONT_PATCHER_URL}"
+            -H "Accept: application/octet-stream" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -o "${WORK_DIR}/${FONT_PATCHER_NAME}" \
+            "${FONT_PATCHER_URL}"
           unzip -o "${WORK_DIR}/${FONT_PATCHER_NAME}" -d "${FONT_PATCHER_DIR}"
+      - name: Upload FontPatcher
+        if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.prepare.outputs.font_patcher_name }}
+          path: ${{ steps.prepare.outputs.work_dir }}/${{ steps.prepare.outputs.font_patcher_name }}
+  patch:
+    runs-on: ubuntu-latest
+    if: ${{ needs.setup.outputs.needs_patch }}
+    outputs:
+      needs_patch: ${{ needs.setup.outputs.needs_patch }}
+      release_tag: ${{ needs.setup.outputs.release_tag }}
+      font_forge_name: ${{ needs.setup.outputs.font_forge_name }}
+      font_patcher_name: ${{ needs.setup.outputs.font_patcher_name }}
+    needs: setup
+    strategy:
+      matrix:
+        font: ${{ fromJSON(needs.setup.outputs.matrix) }}
+    steps:
+      - name: Install libfuse2
+        run: |
+          sudo apt update
+          sudo apt install -y libfuse2
+      - name: Download FontForge and FontPatcher artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - name: Setup job
+        run: |
+          ls -l -R
+          exit 1
+
+          WORK_DIR="/tmp/iosevka-patch"
+          BASE_INPUT_DIR="${WORK_DIR}/input"
+          BASE_OUTPUT_DIR="${WORK_DIR}/output"
+
+          echo "WORK_DIR=${WORK_DIR}" >> "$GITHUB_ENV"
+          echo "BASE_INPUT_DIR=${BASE_INPUT_DIR}" >> "$GITHUB_ENV"
+          echo "BASE_OUTPUT_DIR=${BASE_OUTPUT_DIR}" >> "$GITHUB_ENV"
+      - name: Create base work dir
+        run: mkdir -p ${WORK_DIR}
       - name: Download font files
         id: download-font
         run: |
@@ -140,7 +170,7 @@ jobs:
           echo "Patching ${ASSET_NAME} into ${BASE_OUTPUT_DIR}/${ASSET_NAME}"
           mkdir -p "${BASE_OUTPUT_DIR}/${ASSET_NAME}"
           find "${BASE_INPUT_DIR}/${ASSET_NAME}" -type f | \
-          parallel echo "Patching {}" \; "${WORK_DIR}/${FONTFORGE_NAME}" -script "${FONT_PATCHER_DIR}/font-patcher" "{}" --quiet --no-progressbars --complete -out "${BASE_OUTPUT_DIR}/${ASSET_NAME}"
+          parallel echo "Patching {}" \; "${GITHUB_WORKSPACE}/${{ needs.setup.outputs.font_forge_name }}" -script "${GITHUB_WORKSPACE}/font-patcher" "{}" --quiet --no-progressbars --complete -out "${BASE_OUTPUT_DIR}/${ASSET_NAME}"
           echo "output_dir=${BASE_OUTPUT_DIR}/${ASSET_NAME}" >> "${GITHUB_OUTPUT}"
       - name: Share output
         uses: actions/upload-artifact@v4
@@ -154,6 +184,7 @@ jobs:
     if: ${{ needs.patch.outputs.needs_patch }}
     needs: patch
     steps:
+      # TODO: maybe remove artifacts from step 'setup'
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Remove old font files
@@ -161,13 +192,17 @@ jobs:
           find ./ -mindepth 1 -maxdepth 1 -type d -not -name '.*' -exec rm -r {} \;
       - name: Load artifacts
         uses: actions/download-artifact@v4
+      - name: Debug ls
+        run: |
+          ls -l
       - name: Git config
         run: |
           git config --global user.name "CI"
           git config --global user.email "${{ github.triggering_actor }}@users.noreply.github.com"
       - name: Commit, Tag and Push
         run: |
-          git add --all
-          git commit -m "chore: update patched fonts"
-          git tag "${{ needs.patch.outputs.release_tag }}" -m "Patched Iosevka ${{ needs.patch.outputs.release_tag }}"
-          git push --follow-tags
+          git status --short
+        #  git add --all
+        #  git commit -m "chore: update patched fonts"
+        #  git tag "${{ needs.patch.outputs.release_tag }}" -m "Patched Iosevka ${{ needs.patch.outputs.release_tag }}"
+        #  git push --follow-tags
