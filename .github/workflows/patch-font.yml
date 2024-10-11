@@ -129,9 +129,6 @@ jobs:
           merge-multiple: true
       - name: Setup job
         run: |
-          ls -l -R
-          exit 1
-
           WORK_DIR="/tmp/iosevka-patch"
           BASE_INPUT_DIR="${WORK_DIR}/input"
           BASE_OUTPUT_DIR="${WORK_DIR}/output"
