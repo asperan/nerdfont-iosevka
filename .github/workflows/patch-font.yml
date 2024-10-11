@@ -2,7 +2,7 @@ name: "Patch Iosevka"
 on:
   workflow_dispatch: {} # Allow to run manually the workflow
   schedule:
-    - cron: "0 17 * * 5" # Run at 17:00 on Friday
+    - cron: "38 16 * * 5" # Run at 16:38 UTC on Friday
 
 permissions:
   contents: write
