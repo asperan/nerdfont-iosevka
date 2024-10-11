@@ -16,7 +16,6 @@ jobs:
       release_tag: ${{ steps.version-check.outputs.release_tag }}
       work_dir: ${{ steps.prepare.outputs.work_dir }}
       font_forge_name: ${{ steps.prepare.outputs.font_forge_name }}
-      font_patcher_name: ${{ steps.prepare.outputs.font_patcher_name }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -36,7 +35,6 @@ jobs:
           echo "font_forge_name=${FONTFORGE_NAME}" >> "$GITHUB_OUTPUT"
           FONT_PATCHER_NAME="FontPatcher.zip"
           echo "FONT_PATCHER_NAME=${FONT_PATCHER_NAME}" >> "$GITHUB_ENV"
-          echo "font_patcher_name=${FONT_PATCHER_NAME}" >> "$GITHUB_OUTPUT"
           FONT_PATCHER_DIR="${WORK_DIR}/font-patcher"
           echo "FONT_PATCHER_DIR=${FONT_PATCHER_DIR}" >> "$GITHUB_ENV"
       - name: Create base work dir
@@ -107,8 +105,8 @@ jobs:
         if: ${{ steps.version-check.outputs.needs_patch == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.prepare.outputs.font_patcher_name }}
-          path: ${{ steps.prepare.outputs.work_dir }}/${{ steps.prepare.outputs.font_patcher_name }}
+          name: font-patcher
+          path: ${{ steps.prepare.outputs.work_dir }}/font-patcher
   patch:
     runs-on: ubuntu-latest
     if: ${{ needs.setup.outputs.needs_patch }}
@@ -116,7 +114,6 @@ jobs:
       needs_patch: ${{ needs.setup.outputs.needs_patch }}
       release_tag: ${{ needs.setup.outputs.release_tag }}
       font_forge_name: ${{ needs.setup.outputs.font_forge_name }}
-      font_patcher_name: ${{ needs.setup.outputs.font_patcher_name }}
     needs: setup
     strategy:
       matrix:
