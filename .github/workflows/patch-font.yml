@@ -179,7 +179,12 @@ jobs:
     if: ${{ needs.patch.outputs.needs_patch }}
     needs: patch
     steps:
-      # TODO: maybe remove artifacts from step 'setup'
+      - name: Remove temporary artifacts
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            font-patcher
+            ${{ needs.patch.outputs.font_forge_name }}
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Remove old font files
