@@ -198,8 +198,7 @@ jobs:
           git config --global user.email "${{ github.triggering_actor }}@users.noreply.github.com"
       - name: Commit, Tag and Push
         run: |
-          git status --short
-        #  git add --all
-        #  git commit -m "chore: update patched fonts"
-        #  git tag "${{ needs.patch.outputs.release_tag }}" -m "Patched Iosevka ${{ needs.patch.outputs.release_tag }}"
-        #  git push --follow-tags
+          git add --all
+          git commit -m "chore: update patched fonts"
+          git tag "${{ needs.patch.outputs.release_tag }}" -m "Patched Iosevka ${{ needs.patch.outputs.release_tag }}"
+          git push --follow-tags
