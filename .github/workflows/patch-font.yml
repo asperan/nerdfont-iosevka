@@ -17,11 +17,6 @@ jobs:
       work_dir: ${{ steps.prepare.outputs.work_dir }}
       font_forge_name: ${{ steps.prepare.outputs.font_forge_name }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
       - name: Prepare env
         id: prepare
         run: |
@@ -50,7 +45,11 @@ jobs:
         run: |
           RELEASE_TAG="$(jq -r '.tag_name' "${IOSEVKA_RELEASE_METADATA_PATH}")"
           echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
-          if grep "${RELEASE_TAG}" < <(git tag --list); then
+          curl -fsSL \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/asperan/nerdfont-iosevka/tags | jq 'map(.name)' > latest_versions.json
+          if [ "$(eval 'jq -c "map(select(. == \"${RELEASE_TAG}\")) | length > 0" latest_versions.json')" == "true" ] ; then
             echo "::warning ::Latest release already patched."
             echo "needs_patch=false" >> "${GITHUB_OUTPUT}"
             exit 0
